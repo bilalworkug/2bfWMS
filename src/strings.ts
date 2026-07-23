@@ -1,4 +1,4 @@
-export const strings = {
+export const enStrings = {
   app: { name: "2BFC Warehouse", tagline: "Two Brothers Food Complex — Box Traceability System" },
   auth: {
     signIn: "Sign In", username: "Username", password: "Password",
@@ -47,6 +47,16 @@ export const strings = {
     orderNumber: "Order #", status: "Status", date: "Date",
     short: "Short — not enough stock for all lines", readyToPick: "Ready to pick",
   },
+  pricing: {
+    price: "Price", basePrice: "Base Price", bulkQty: "Bulk Qty Threshold", 
+    discountPct: "Discount %", discountAmount: "Discount", lineTotal: "Line Total",
+    totalAmount: "Total Amount", applyDiscount: "Apply Discount", subtotal: "Subtotal"
+  },
+  tracker: {
+    title: "Order Tracker", searchPlaceholder: "Enter Order Number (e.g. ORD-12345)",
+    customerInfo: "Customer Info", sellerInfo: "Salesperson", orderInfo: "Order Details",
+    search: "Track Order", notFound: "Order not found."
+  },
   stock: {
     title: "Stock Manager", damageQueue: "Damage Decision Queue", productMaster: "Product Master Data",
     approve: "Approve", writeoff: "Write Off", returnToStock: "Return to Stock", reject: "Reject",
@@ -54,6 +64,11 @@ export const strings = {
     save: "Save", noReports: "No pending damage reports.",
   },
   qa: { title: "QA Officer", placeHold: "Place Quality Hold", releaseHold: "Release Hold", activeHolds: "Active Holds", reason: "Reason", place: "Place", release: "Release" },
+  damage: {
+    title: "Report Damage", source: "Damage Source", warehouse: "Warehouse",
+    customer_returned: "Customer Return", reason: "Reason for damage", reportDamage: "Report Damage",
+    reported: "Damage reported successfully",
+  },
   reports: {
     title: "Reports", inventoryByProduct: "Inventory by Product", salesActivity: "Sales Activity",
     boxLifecycle: "Box Lifecycle", exportPdf: "Export PDF", exportExcel: "Export Excel",
@@ -76,4 +91,97 @@ export const strings = {
   },
 } as const;
 
-export type StringTree = typeof strings;
+export const amStrings = {
+  app: { name: "2BFC መጋዘን", tagline: "Two Brothers Food Complex — የካርቶን መከታተያ ስርዓት" },
+  auth: {
+    signIn: "ግባ", username: "የተጠቃሚ ስም", password: "የይለፍ ቃል",
+    twoFactorCode: "ባለሁለት ደረጃ ኮድ", signingIn: "በመግባት ላይ...",
+    incorrectCredentials: "የተሳሳተ የተጠቃሚ ስም ወይም የይለፍ ቃል.",
+    accountLocked: "ይህ መለያ ታግዷል። እባክዎ አስተዳዳሪዎን ያነጋግሩ።",
+    tooManyAttempts: "ብዙ ያልተሳኩ ሙከራዎች። ከ15 ደቂቃ በኋላ እንደገና ይሞክሩ።",
+    inactive: "ይህ መለያ ገቢር አይደለም። አስተዳዳሪዎን ያነጋግሩ።",
+    twoFactorRequired: "ባለሁለት ደረጃ ማረጋገጫ ኮድ ያስፈልጋል።",
+    invalidTwoFactor: "የተሳሳተ ባለሁለት ደረጃ ኮድ።",
+    signOut: "ውጣ",
+  },
+  nav: { home: "ዋና ገጽ", checker: "አረጋጋጭ", backToHome: "ወደ ዋና ገጽ ተመለስ" },
+  roles: {
+    super_admin: "ዋና አስተዳዳሪ", production_admin: "የምርት አስተዳዳሪ", production: "ምርት",
+    warehouse_admin: "የመጋዘን አስተዳዳሪ", warehouse_receiving: "መጋዘን ገቢ",
+    warehouse_withdrawal: "መጋዘን ወጪ", sales_admin: "የሽያጭ አስተዳዳሪ", sales: "ሽያጭ",
+    stock_manager_admin: "የክምችት አስተዳዳሪ (አድሚን)", stock_manager: "የክምችት አስተዳዳሪ",
+    qa_admin: "የጥራት አስተዳዳሪ", qa_officer: "የጥራት ተቆጣጣሪ", report_viewer: "ሪፖርት ተመልካች",
+  },
+  status: {
+    logged: "ተመዝግቧል", in_stock: "በክምችት አለ", on_hold: "ታግዷል", expired: "ጊዜው አልፎበታል",
+    dispatched_sale: "ተልኳል (ሽያጭ)", dispatched_non_sale: "ተልኳል (ያልሆነ-ሽያጭ)",
+    damaged_pending: "የተበላሸ - በመጠባበቅ ላይ", written_off: "ተሰርዟል", returned_to_stock: "ወደ ክምችት ተመልሷል",
+  },
+  scan: {
+    scanOrType: "ኮድ ይቃኙ ወይም ያስገቡ", scanPlaceholder: "ባርኮድ እዚህ ይቃኙ...",
+    cameraScan: "በካሜራ ይቃኙ", stopCamera: "ካሜራ አቁም", selectProduct: "ምርት ይምረጡ",
+    runningCount: "በዚህ ክፍለ ጊዜ የተመዘገቡ ካርቶኖች", newBox: "አዲስ ካርቶን ተመዝግቧል", alreadyLogged: "ቀድሞውኑ ተመዝግቧል",
+    confirmReceipt: "ርክክብ አረጋግጥ", receiptConfirmed: "ርክክብ ተረጋግጧል",
+    fulfill: "አሟላ", fefoSuggested: "የቀደመ ጊዜ ይመከራል (FEFO)", overrideNeeded: "የማለፊያ ምክንያት ያስፈልጋል",
+    overrideReason: "የማለፊያ ምክንያት", submitOverride: "በማለፊያ አረጋግጥ", cancel: "ሰርዝ",
+  },
+  production: { title: "ምርት — ካርቶን ይመዝግቡ", pickProduct: "ምርቱን ይምረጡ፣ ከዚያ እያንዳንዱን ካርቶን ይቃኙ", sessionCount: "የክፍለ ጊዜ ድምር", lastScan: "የመጨረሻ ቅኝት" },
+  receiving: { title: "መጋዘን ገቢ — ርክክብ አረጋግጥ", scanToConfirm: "ርክክብ ለማረጋገጥ የተመዘገበ ካርቶን ይቃኙ" },
+  withdrawal: {
+    title: "መጋዘን ወጪ", orderPicker: "ትእዛዝ ሰብሳቢ — FEFO", nonSaleDispatch: "ያልሆነ-ሽያጭ መላኪያ",
+    category: "ምድብ", gift: "ስጦታ", promotion: "ማስተዋወቂያ", personalUse: "ለግል ጥቅም",
+    reason: "ምክንያት", dispatch: "ላክ", selectOrder: "ትእዛዝ ይምረጡ",
+    line: "መስመር", of: "ከ", suggested: "የተጠቆሙ ካርቶኖች (FEFO)", scanBox: "ለማሟላት ካርቶን ይቃኙ",
+  },
+  sales: {
+    title: "ሽያጭ", customers: "ደንበኞች", newOrder: "አዲስ ትእዛዝ", orderHistory: "የትእዛዝ ታሪክ",
+    addCustomer: "ደንበኛ አክል", customerName: "የደንበኛ ስም", phone: "ስልክ", address: "አድራሻ",
+    save: "አስቀምጥ", available: "የሚገኝ", addLine: "መስመር አክል", quantity: "ብዛት", createOrder: "ትእዛዝ ፍጠር",
+    orderNumber: "ትእዛዝ #", status: "ሁኔታ", date: "ቀን",
+    short: "አነስተኛ — በቂ ክምችት የለም", readyToPick: "ለመሰብሰብ ዝግጁ",
+  },
+  pricing: {
+    price: "ዋጋ", basePrice: "መነሻ ዋጋ", bulkQty: "የጅምላ ብዛት", 
+    discountPct: "ቅናሽ %", discountAmount: "ቅናሽ", lineTotal: "የመስመር ድምር",
+    totalAmount: "አጠቃላይ ድምር", applyDiscount: "ቅናሽ ተግብር", subtotal: "ንዑስ ድምር"
+  },
+  tracker: {
+    title: "የምርት ክትትል", searchPlaceholder: "የትዕዛዝ ቁጥር ያስገቡ (ለምሳሌ: ORD-12345)",
+    customerInfo: "የደንበኛ መረጃ", sellerInfo: "ሻጭ", orderInfo: "የትዕዛዝ ዝርዝሮች",
+    search: "ትዕዛዝ ፈልግ", notFound: "ትዕዛዝ አልተገኘም።"
+  },
+  stock: {
+    title: "የክምችት አስተዳዳሪ", damageQueue: "የብልሽት ውሳኔ ዝርዝር", productMaster: "የምርት መረጃ",
+    approve: "አጽድቅ", writeoff: "ሰርዝ", returnToStock: "ወደ ክምችት መልስ", reject: "ውድቅ አድርግ",
+    decisionNote: "የውሳኔ ማስታወሻ", reorderPoint: "የእንደገና ትእዛዝ ነጥብ", shelfLife: "የመቆያ ጊዜ (ቀናት)",
+    save: "አስቀምጥ", noReports: "ምንም በመጠባበቅ ላይ ያለ የብልሽት ሪፖርት የለም።",
+  },
+  qa: { title: "የጥራት ተቆጣጣሪ", placeHold: "እግድ አድርግ", releaseHold: "እግድ አንሳ", activeHolds: "ንቁ እግዶች", reason: "ምክንያት", place: "አድርግ", release: "አንሳ" },
+  damage: {
+    title: "ብልሽት ሪፖርት አድርግ", source: "የብልሽት ምንጭ", warehouse: "መጋዘን",
+    customer_returned: "የደንበኛ ተመላሽ", reason: "የብልሽት ምክንያት", reportDamage: "ብልሽት ሪፖርት አድርግ",
+    reported: "ብልሽቱ በተሳካ ሁኔታ ሪፖርት ተደርጓል",
+  },
+  reports: {
+    title: "ሪፖርቶች", inventoryByProduct: "ክምችት በምርት", salesActivity: "የሽያጭ እንቅስቃሴ",
+    boxLifecycle: "የካርቶን ኡደት", exportPdf: "ፒዲኤፍ ላክ", exportExcel: "ኤክሴል ላክ",
+    totalBoxes: "አጠቃላይ ካርቶኖች", inStock: "በክምችት", dispatched: "የተላከ", expired: "ጊዜ ያለፈበት", damaged: "የተበላሸ",
+  },
+  checker: {
+    title: "አረጋጋጭ — ማንኛውንም ኮድ ይቃኙ", lookup: "ፈልግ", noBox: "በዚህ ኮድ ምንም ካርቶን የለም።",
+    history: "ታሪክ", product: "ምርት", status: "ሁኔታ",
+    loggedAt: "የተመዘገበበት", receivedAt: "የተረከበበት", expiry: "የሚያበቃበት",
+  },
+  admin: {
+    title: "ዳሽቦርድ", overview: "አጠቃላይ እይታ", byWorker: "በሰራተኛ", byProduct: "በምርት",
+    filterDate: "በቀን አጣራ", filterWorker: "በሰራተኛ አጣራ", filterProduct: "በምርት አጣራ",
+    drillDown: "የካርቶን ታሪክ በዝርዝር እይ", manageUsers: "ተጠቃሚዎችን አስተዳድር", addProductAccess: "የምርት መዳረሻ",
+  },
+  common: {
+    loading: "በመጫን ላይ...", error: "ስህተት", none: "ምንም", notApplicable: "ተግባራዊ አይሆንም",
+    close: "ዝጋ", yes: "አዎ", no: "አይ", search: "ፈልግ", actions: "ድርጊቶች",
+    code: "ኮድ", product: "ምርት", user: "ተጠቃሚ", date: "ቀን", back: "ተመለስ",
+  },
+} as const;
+
+export type StringTree = typeof enStrings;

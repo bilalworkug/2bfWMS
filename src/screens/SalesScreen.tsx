@@ -2,13 +2,14 @@ import { useEffect, useState } from "react";
 import { supabase } from "../supabase";
 import type { Customer, Order, Product } from "../supabase";
 import { useToast } from "../Toast";
-import { strings } from "../strings";
-import { Users, ShoppingCart, Plus, X, FileText, UserPlus, Package, MapPin, Phone } from "lucide-react";
+import { useLanguage } from "../LanguageContext";
+import { Users, ShoppingCart, Plus, X, FileText, UserPlus, Package, MapPin, Phone, RefreshCw } from "lucide-react";
 
 type Tab = "orders" | "newOrder" | "customers";
 
 export function SalesScreen() {
   const notify = useToast();
+  const { strings } = useLanguage();
   const [tab, setTab] = useState<Tab>("orders");
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [orders, setOrders] = useState<(Order & { customer?: Customer })[]>([]);
@@ -89,6 +90,12 @@ export function SalesScreen() {
           </h1>
           <p className="text-sm text-slate-500 mt-1">Manage orders, customers, and create new sales drafts.</p>
         </div>
+        <button 
+          onClick={() => { loadCustomers(); loadOrders(); loadProducts(); }} 
+          className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-bold rounded-xl transition-colors"
+        >
+          <RefreshCw size={16} /> Refresh
+        </button>
       </div>
 
       <div className="flex bg-slate-200/50 p-1.5 rounded-2xl w-fit">
@@ -114,6 +121,7 @@ export function SalesScreen() {
                   <th className="text-left px-6 py-4">{strings.sales.orderNumber}</th>
                   <th className="text-left px-6 py-4">Customer</th>
                   <th className="text-left px-6 py-4">{strings.sales.status}</th>
+                  <th className="text-right px-6 py-4">{strings.pricing.totalAmount}</th>
                   <th className="text-left px-6 py-4">{strings.sales.date}</th>
                 </tr>
               </thead>
@@ -132,6 +140,9 @@ export function SalesScreen() {
                         <span className={`inline-flex items-center rounded-md px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider border ${getStatusBadge(o.status)}`}>
                           {o.status.replace(/_/g, " ")}
                         </span>
+                      </td>
+                      <td className="px-6 py-4 text-right font-bold text-slate-800">
+                        {(o.total_amount || 0).toFixed(2)} ETB
                       </td>
                       <td className="px-6 py-4 text-slate-500 font-medium">{new Date(o.order_date).toLocaleDateString(undefined, { dateStyle: "medium" })}</td>
                     </tr>
@@ -217,30 +228,111 @@ export function SalesScreen() {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {lines.map((l, i) => (
-                      <div key={i} className="flex flex-col sm:flex-row items-start sm:items-center gap-3 bg-slate-50 p-3 rounded-2xl border border-slate-200 group relative">
-                        <div className="flex-1 w-full">
-                          <select value={l.product_id} onChange={e => updateLine(i, { product_id: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all appearance-none cursor-pointer">
-                            {products.map(p => <option key={p.id} value={p.id}>{p.product_code} — {p.name}</option>)}
-                          </select>
-                        </div>
-                        <div className="flex items-center gap-3 w-full sm:w-auto">
-                          <div className="flex items-center bg-white border border-slate-200 rounded-xl px-2">
-                            <span className="text-xs text-slate-400 font-bold ml-2 mr-1 uppercase">Qty</span>
-                            <input type="number" min={1} value={l.quantity} onChange={e => updateLine(i, { quantity: parseInt(e.target.value) || 1 })} className="w-16 bg-transparent py-2.5 text-sm font-bold text-center focus:outline-none" />
+                    {lines.map((l, i) => {
+                      const prod = products.find(p => p.id === l.product_id);
+                      const basePrice = prod?.price || 0;
+                      let discountAmt = 0;
+                      if (prod?.discount_threshold && l.quantity >= prod.discount_threshold && prod.discount_percentage) {
+                        discountAmt = (basePrice * (prod.discount_percentage / 100)) * l.quantity;
+                      }
+                      const lineTotal = (basePrice * l.quantity) - discountAmt;
+
+                      return (
+                        <div key={i} className="flex flex-col sm:flex-row items-start sm:items-center gap-3 bg-slate-50 p-3 rounded-2xl border border-slate-200 group relative">
+                          <div className="flex-1 w-full">
+                            <select value={l.product_id} onChange={e => updateLine(i, { product_id: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all appearance-none cursor-pointer">
+                              {products.map(p => <option key={p.id} value={p.id}>{p.product_code} — {p.name}</option>)}
+                            </select>
+                            {basePrice > 0 && (
+                              <div className="text-xs text-slate-500 mt-1 pl-1">
+                                {strings.pricing.basePrice}: <span className="font-bold">{basePrice.toFixed(2)} ETB</span>
+                                {prod?.discount_threshold && (
+                                  <span className="ml-2 text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+                                    {strings.pricing.discountPct}: {prod.discount_percentage}% (min {prod.discount_threshold})
+                                  </span>
+                                )}
+                              </div>
+                            )}
                           </div>
-                          <div className="text-xs font-bold bg-white border border-slate-200 px-3 py-2.5 rounded-xl whitespace-nowrap text-slate-600">
-                            Available: <span className={available[l.product_id] > 0 ? "text-emerald-600" : "text-rose-600"}>{available[l.product_id] ?? 0}</span>
+                          <div className="flex flex-col sm:flex-row items-end sm:items-center gap-3 w-full sm:w-auto">
+                            <div className="flex items-center bg-white border border-slate-200 rounded-xl px-2">
+                              <span className="text-xs text-slate-400 font-bold ml-2 mr-1 uppercase">Qty</span>
+                              <input type="number" min={1} value={l.quantity} onChange={e => updateLine(i, { quantity: parseInt(e.target.value) || 1 })} className="w-16 bg-transparent py-2.5 text-sm font-bold text-center focus:outline-none" />
+                            </div>
+                            
+                            <div className="text-right min-w-[80px]">
+                              {discountAmt > 0 && (
+                                <div className="text-xs text-emerald-600 font-bold line-through opacity-70">
+                                  {(basePrice * l.quantity).toFixed(2)} ETB
+                                </div>
+                              )}
+                              <div className="text-sm font-bold text-slate-800">
+                                {lineTotal.toFixed(2)} ETB
+                              </div>
+                            </div>
+                            
+                            <button onClick={() => removeLine(i)} className="p-2.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors sm:absolute sm:-right-2 sm:-top-2 sm:opacity-0 sm:group-hover:opacity-100 sm:bg-white sm:border sm:border-slate-200 sm:shadow-sm">
+                              <X size={16} />
+                            </button>
                           </div>
-                          <button onClick={() => removeLine(i)} className="p-2.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors sm:absolute sm:-right-2 sm:-top-2 sm:opacity-0 sm:group-hover:opacity-100 sm:bg-white sm:border sm:border-slate-200 sm:shadow-sm">
-                            <X size={16} />
-                          </button>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
+
+              {lines.length > 0 && (
+                <div className="mt-6 pt-6 border-t border-slate-100 space-y-2">
+                  <div className="flex justify-between items-center text-slate-500">
+                    <span className="text-sm font-bold">{strings.pricing.subtotal}</span>
+                    <span className="font-mono">
+                      {lines.reduce((acc, l) => {
+                        const prod = products.find(p => p.id === l.product_id);
+                        return acc + ((prod?.price || 0) * l.quantity);
+                      }, 0).toFixed(2)} ETB
+                    </span>
+                  </div>
+                  
+                  {lines.reduce((acc, l) => {
+                    const prod = products.find(p => p.id === l.product_id);
+                    let discountAmt = 0;
+                    if (prod?.discount_threshold && l.quantity >= prod.discount_threshold && prod.discount_percentage) {
+                      discountAmt = ((prod?.price || 0) * (prod.discount_percentage / 100)) * l.quantity;
+                    }
+                    return acc + discountAmt;
+                  }, 0) > 0 && (
+                    <div className="flex justify-between items-center text-emerald-600">
+                      <span className="text-sm font-bold">{strings.pricing.discountAmount}</span>
+                      <span className="font-mono font-bold">
+                        -{lines.reduce((acc, l) => {
+                          const prod = products.find(p => p.id === l.product_id);
+                          let discountAmt = 0;
+                          if (prod?.discount_threshold && l.quantity >= prod.discount_threshold && prod.discount_percentage) {
+                            discountAmt = ((prod?.price || 0) * (prod.discount_percentage / 100)) * l.quantity;
+                          }
+                          return acc + discountAmt;
+                        }, 0).toFixed(2)} ETB
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="flex justify-between items-center pt-2">
+                    <span className="text-lg font-black text-slate-800">{strings.pricing.totalAmount}</span>
+                    <span className="text-2xl font-black text-blue-600">
+                      {lines.reduce((acc, l) => {
+                        const prod = products.find(p => p.id === l.product_id);
+                        const basePrice = prod?.price || 0;
+                        let discountAmt = 0;
+                        if (prod?.discount_threshold && l.quantity >= prod.discount_threshold && prod.discount_percentage) {
+                          discountAmt = (basePrice * (prod.discount_percentage / 100)) * l.quantity;
+                        }
+                        return acc + ((basePrice * l.quantity) - discountAmt);
+                      }, 0).toFixed(2)} ETB
+                    </span>
+                  </div>
+                </div>
+              )}
 
               <div className="mt-8 pt-6 border-t border-slate-100">
                 <button 

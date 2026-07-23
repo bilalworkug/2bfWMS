@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { supabase } from "../supabase";
 import { ScanField } from "../ScanField";
-import { strings } from "../strings";
+import { useLanguage } from "../LanguageContext";
 import { Search, Package, Clock, Activity, MapPin, Box, QrCode } from "lucide-react";
 import { playScanSuccess, playScanAlreadyExists, playScanError } from "../audio";
 
@@ -11,6 +11,7 @@ interface Result { found: boolean; box?: BoxInfo; history?: HistoryItem[]; messa
 
 export function CheckerScreen() {
   const [result, setResult] = useState<Result | null>(null);
+  const { strings } = useLanguage();
   const [loading, setLoading] = useState(false);
 
   const handleScan = async (code: string) => {

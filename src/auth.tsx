@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
 import { supabase } from "./supabase";
 import type { Profile, UserRole } from "./supabase";
-import { strings } from "./strings";
+import { useLanguage } from "./LanguageContext";
 
 interface AuthContextValue {
   profile: Profile | null;
@@ -16,6 +16,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const { strings } = useLanguage();
 
   const loadProfile = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -44,7 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const mockProfiles = JSON.parse(localStorage.getItem("mock_profiles") || "[]");
       const user = mockProfiles.find((p: any) => p.username === uname);
       if (!user) {
-        return { error: strings.auth.incorrectCredentials };
+        return { error: "Incorrect username or password." }; // Since auth is generic, mock strings directly or rely on login screen
       }
       if (typeof (supabase as any).forceMockFallback === "function") {
         (supabase as any).forceMockFallback();
@@ -102,7 +103,10 @@ export function useAuth() {
   return ctx;
 }
 
-export function roleLabel(role: UserRole): string { return strings.roles[role] || role; }
-export function statusLabel(status: string): string {
-  return (strings.status as Record<string, string>)[status] || status;
+export function useLabels() {
+  const { strings } = useLanguage();
+  return {
+    roleLabel: (role: UserRole): string => strings.roles[role] || role,
+    statusLabel: (status: string): string => (strings.status as Record<string, string>)[status] || status,
+  };
 }

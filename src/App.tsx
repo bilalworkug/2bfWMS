@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { AuthProvider, useAuth, roleLabel } from "./auth";
+import { AuthProvider, useAuth, useLabels } from "./auth";
 import { ToastProvider } from "./Toast";
 import { LoginScreen } from "./LoginScreen";
-import { strings } from "./strings";
+import { useLanguage, LanguageProvider } from "./LanguageContext";
 import type { UserRole } from "./supabase";
 import {
   LogOut,
@@ -18,6 +18,8 @@ import {
   PackageMinus,
   Bell,
   Menu,
+  AlertTriangle,
+  RefreshCw,
 } from "lucide-react";
 import { Logo } from "./Logo";
 import { ProductionScreen } from "./screens/ProductionScreen";
@@ -29,13 +31,20 @@ import { QAScreen } from "./screens/QAScreen";
 import { ReportsScreen } from "./screens/ReportsScreen";
 import { CheckerScreen } from "./screens/CheckerScreen";
 import { AdminDashboard } from "./screens/AdminDashboard";
+import { DamageScreen } from "./screens/DamageScreen";
+import { OrderTrackerScreen } from "./screens/OrderTrackerScreen";
 
-type View = "home" | "production" | "receiving" | "withdrawal" | "sales" | "stock" | "qa" | "reports" | "checker" | "admin";
+type View = "home" | "production" | "receiving" | "withdrawal" | "sales" | "stock" | "qa" | "reports" | "checker" | "admin" | "damage" | "tracker";
 
 function Shell() {
   const { profile, loading, signOut } = useAuth();
+  const { strings, language, setLanguage } = useLanguage();
+  const { roleLabel } = useLabels();
   const [view, setView] = useState<View>("home");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [globalSearch, setGlobalSearch] = useState("");
+  const [trackerQuery, setTrackerQuery] = useState("");
+  const [refreshKey, setRefreshKey] = useState(0);
 
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><p className="text-slate-500">{strings.common.loading}</p></div>;
   if (!profile) return <LoginScreen />;
@@ -44,10 +53,12 @@ function Shell() {
   const navItems: { key: View; label: string; show: boolean; icon: any }[] = [
     { key: "home", label: strings.nav.home, show: true, icon: LayoutDashboard },
     { key: "checker", label: strings.nav.checker, show: canUseChecker(role), icon: Search },
+    { key: "tracker", label: strings.tracker.title, show: true, icon: Search },
     { key: "production", label: strings.roles.production, show: role === "production" || role === "production_admin", icon: Box },
     { key: "receiving", label: strings.roles.warehouse_receiving, show: role === "warehouse_receiving" || role === "warehouse_admin", icon: PackagePlus },
     { key: "withdrawal", label: strings.roles.warehouse_withdrawal, show: role === "warehouse_withdrawal" || role === "warehouse_admin", icon: PackageMinus },
     { key: "sales", label: strings.roles.sales, show: role === "sales" || role === "sales_admin", icon: ShoppingCart },
+    { key: "damage", label: strings.damage.title, show: role === "warehouse_admin" || role === "warehouse_receiving" || role === "warehouse_withdrawal" || role === "sales" || role === "sales_admin", icon: AlertTriangle },
     { key: "stock", label: strings.roles.stock_manager, show: role === "stock_manager" || role === "stock_manager_admin", icon: Layers },
     { key: "qa", label: strings.roles.qa_officer, show: role === "qa_officer" || role === "qa_admin", icon: ShieldCheck },
     { key: "reports", label: strings.roles.report_viewer, show: role === "report_viewer" || role === "stock_manager" || role === "stock_manager_admin" || role === "qa_officer" || role === "qa_admin" || role === "super_admin", icon: BarChart3 },
@@ -66,9 +77,7 @@ function Shell() {
       <aside className={`w-64 bg-[#1460A5] text-white flex flex-col shrink-0 transition-transform duration-300 absolute inset-y-0 z-50 sm:relative sm:translate-x-0 ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full"}`}>
         {/* Logo Area */}
         <div className="h-16 flex items-center gap-3 px-6 shrink-0 border-b border-white/10">
-          <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center shrink-0 shadow-sm">
-            <Logo size={24} />
-          </div>
+          <Logo size={32} />
           <div className="font-bold text-lg tracking-tight truncate">{strings.app.name}</div>
         </div>
 
@@ -123,11 +132,37 @@ function Shell() {
             </button>
             <div className="hidden sm:flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 w-64 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 transition-all">
               <Search size={16} className="text-slate-400 shrink-0" />
-              <input type="text" placeholder="Search..." className="bg-transparent border-none outline-none text-sm w-full ml-2 text-slate-700 placeholder-slate-400" />
+              <input 
+                type="text" 
+                placeholder="Search order..." 
+                value={globalSearch}
+                onChange={e => setGlobalSearch(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === "Enter" && globalSearch.trim()) {
+                    setTrackerQuery(globalSearch.trim());
+                    setView("tracker");
+                    setGlobalSearch("");
+                  }
+                }}
+                className="bg-transparent border-none outline-none text-sm w-full ml-2 text-slate-700 placeholder-slate-400" 
+              />
             </div>
           </div>
 
           <div className="flex items-center gap-3 sm:gap-5">
+            <button 
+              onClick={() => setRefreshKey(k => k + 1)}
+              title="Refresh Current View"
+              className="text-slate-400 hover:text-blue-600 transition-colors"
+            >
+              <RefreshCw size={20} />
+            </button>
+            <button 
+              onClick={() => setLanguage(language === "en" ? "am" : "en")}
+              className="text-sm font-semibold text-slate-500 hover:text-blue-600 bg-slate-100 px-3 py-1.5 rounded-full transition-colors"
+            >
+              {language === "en" ? "አማ" : "En"}
+            </button>
             <button className="text-slate-400 hover:text-slate-600 relative">
               <Bell size={20} />
               <span className="absolute top-0 right-0 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white"></span>
@@ -141,18 +176,20 @@ function Shell() {
         </header>
 
         {/* Scrollable Screen Content */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-8">
+        <main key={refreshKey} className="flex-1 overflow-y-auto p-4 sm:p-8">
           <div className="max-w-6xl mx-auto">
             {view === "home" && <Home role={role} onNavigate={setView} activeNav={activeNav} />}
             {view === "production" && (role === "production" ? <ProductionScreen /> : <AdminDashboard role={role} />)}
             {view === "receiving" && (role === "warehouse_receiving" ? <ReceivingScreen /> : <AdminDashboard role={role} />)}
-            {view === "withdrawal" && (role === "warehouse_withdrawal" ? <WithdrawalScreen /> : <AdminDashboard role={role} />)}
+            { view === "withdrawal" && (role === "warehouse_withdrawal" ? <WithdrawalScreen /> : <AdminDashboard role={role} />)}
             {view === "sales" && <SalesScreen />}
+            {view === "damage" && <DamageScreen />}
             {view === "stock" && <StockScreen />}
             {view === "qa" && <QAScreen />}
             {view === "reports" && <ReportsScreen />}
             {view === "checker" && <CheckerScreen />}
             {view === "admin" && <AdminDashboard role={role} />}
+            {view === "tracker" && <OrderTrackerScreen initialQuery={trackerQuery} />}
           </div>
         </main>
       </div>
@@ -161,6 +198,8 @@ function Shell() {
 }
 
 function Home({ role, onNavigate, activeNav }: { role: UserRole; onNavigate: (v: View) => void, activeNav: any[] }) {
+  const { strings } = useLanguage();
+  const { roleLabel } = useLabels();
   const cards = activeNav.filter(n => n.key !== "home");
   return (
     <div className="space-y-8 animate-fade-in">
@@ -206,10 +245,12 @@ function isAdmin(role: UserRole): boolean { return role.endsWith("_admin") || ro
 
 export default function App() {
   return (
-    <ToastProvider>
-      <AuthProvider>
-        <Shell />
-      </AuthProvider>
-    </ToastProvider>
+    <LanguageProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <Shell />
+        </AuthProvider>
+      </ToastProvider>
+    </LanguageProvider>
   );
 }

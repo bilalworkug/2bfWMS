@@ -3,9 +3,9 @@ import { supabase } from "../supabase";
 import type { Product } from "../supabase";
 import { ScanField } from "../ScanField";
 import { useToast } from "../Toast";
-import { strings } from "../strings";
+import { useLanguage } from "../LanguageContext";
 import { useAuth } from "../auth";
-import { CheckCircle2, AlertTriangle, Package, Activity, Box } from "lucide-react";
+import { CheckCircle2, AlertTriangle, Package, Activity, Box, RefreshCw } from "lucide-react";
 import { playScanSuccess, playScanAlreadyExists, playScanError } from "../audio";
 
 interface ResultBanner { type: "success" | "info" | "error"; message: string; detail?: string; }
@@ -13,17 +13,20 @@ interface ResultBanner { type: "success" | "info" | "error"; message: string; de
 export function ProductionScreen() {
   const { profile } = useAuth();
   const notify = useToast();
+  const { strings } = useLanguage();
   const [products, setProducts] = useState<Product[]>([]);
   const [productId, setProductId] = useState<string>("");
   const [count, setCount] = useState(0);
   const [banner, setBanner] = useState<ResultBanner | null>(null);
 
+  const loadProducts = async () => {
+    const { data } = await supabase.from("products").select("*").eq("is_active", true).order("product_code");
+    setProducts(data as Product[] || []);
+    if (data && data.length > 0 && !productId) setProductId(data[0].id);
+  };
+
   useEffect(() => {
-    (async () => {
-      const { data } = await supabase.from("products").select("*").eq("is_active", true).order("product_code");
-      setProducts(data as Product[] || []);
-      if (data && data.length > 0) setProductId(data[0].id);
-    })();
+    loadProducts();
   }, []);
 
   const handleScan = async (code: string) => {
@@ -58,8 +61,14 @@ export function ProductionScreen() {
             <Package className="text-blue-600 w-7 h-7" />
             {strings.production.title}
           </h1>
-          <p className="text-sm text-slate-500 mt-1">{strings.production.pickProduct}</p>
+          <p className="text-sm text-slate-500 mt-1">Log newly packaged items.</p>
         </div>
+        <button 
+          onClick={loadProducts} 
+          className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-bold rounded-xl transition-colors"
+        >
+          <RefreshCw size={16} /> Refresh
+        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

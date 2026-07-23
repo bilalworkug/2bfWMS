@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../supabase";
 import type { Product } from "../supabase";
-import { strings } from "../strings";
+import { useLanguage } from "../LanguageContext";
 import { BarChart3, Download, Boxes, TrendingUp, Filter, FileSpreadsheet, PieChart, Info, PackageOpen, Truck, AlertTriangle, Layers } from "lucide-react";
 
 interface Row { product_id: string; product_code: string; name: string; status: string; count: number; }
 
 export function ReportsScreen() {
+  const [reportType, setReportType] = useState<"inventory" | "sales" | "lifecycle">("inventory");
+  const { strings } = useLanguage();
   const [rows, setRows] = useState<Row[]>([]);
   const [totals, setTotals] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);

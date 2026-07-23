@@ -2,13 +2,14 @@ import { useState } from "react";
 import { supabase } from "../supabase";
 import { ScanField } from "../ScanField";
 import { useToast } from "../Toast";
-import { strings } from "../strings";
+import { useLanguage } from "../LanguageContext";
 import { CheckCircle2, AlertTriangle, PackageCheck, QrCode, Activity } from "lucide-react";
 import { playScanSuccess, playScanAlreadyExists, playScanError } from "../audio";
 interface Banner { type: "success" | "info" | "error"; message: string; detail?: string; }
 
 export function ReceivingScreen() {
   const notify = useToast();
+  const { strings } = useLanguage();
   const [banner, setBanner] = useState<Banner | null>(null);
   const [count, setCount] = useState(0);
 

@@ -33,6 +33,7 @@ export interface Profile {
 export interface Product {
   id: string; product_code: string; name: string;
   reorder_point: number | null; shelf_life_days: number | null;
+  price: number; discount_threshold: number | null; discount_percentage: number | null;
   is_active: boolean; created_at: string; updated_at: string;
 }
 export interface Box {
@@ -48,11 +49,13 @@ export interface Customer {
 export interface Order {
   id: string; order_number: string; customer_id: string;
   sales_person_user_id: string | null; status: OrderStatus;
+  total_amount: number;
   order_date: string; dispatched_at: string | null; created_at: string; updated_at: string;
 }
 export interface OrderLine {
   id: string; order_id: string; product_id: string;
   quantity_requested: number; quantity_fulfilled: number;
+  unit_price: number; discount_applied: number; line_total: number;
 }
 export interface DamageReport {
   id: string; box_id: string; source: DamageSource; reason: string | null;
@@ -83,19 +86,19 @@ const setStorageItem = <T>(key: string, value: T): void => {
 };
 
 const SEEDED_PRODUCTS: Product[] = [
-  { id: "p-1", product_code: "BR1", name: "Sliced Bread 400g", reorder_point: 50, shelf_life_days: 7, is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
-  { id: "p-2", product_code: "BR2", name: "Sliced Bread 600g", reorder_point: 50, shelf_life_days: 7, is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
-  { id: "p-3", product_code: "BR3", name: "Burger Buns 6-pack", reorder_point: 30, shelf_life_days: 5, is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
-  { id: "p-4", product_code: "BR4", name: "Hot Dog Buns 6-pack", reorder_point: 30, shelf_life_days: 5, is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
-  { id: "p-5", product_code: "BR5", name: "Dinner Rolls 8-pack", reorder_point: 20, shelf_life_days: 5, is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
-  { id: "p-6", product_code: "BS1", name: "Biscuits — Plain", reorder_point: 100, shelf_life_days: 90, is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
-  { id: "p-7", product_code: "BS2", name: "Biscuits — Sweet", reorder_point: 100, shelf_life_days: 90, is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
-  { id: "p-8", product_code: "CK1", name: "Cake — Vanilla", reorder_point: 15, shelf_life_days: 14, is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
-  { id: "p-9", product_code: "CK2", name: "Cake — Chocolate", reorder_point: 15, shelf_life_days: 14, is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
-  { id: "p-10", product_code: "PS1", name: "Pastry — Savory", reorder_point: 40, shelf_life_days: 3, is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
-  { id: "p-11", product_code: "PS2", name: "Pastry — Sweet", reorder_point: 40, shelf_life_days: 3, is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
-  { id: "p-12", product_code: "SN1", name: "Snack Pack — Small", reorder_point: 60, shelf_life_days: 180, is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
-  { id: "p-13", product_code: "SN2", name: "Snack Pack — Large", reorder_point: 60, shelf_life_days: 180, is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: "p-1", product_code: "BR1", name: "Sliced Bread 400g", price: 5, discount_threshold: 50, discount_percentage: 5, reorder_point: 50, shelf_life_days: 7, is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: "p-2", product_code: "BR2", name: "Sliced Bread 600g", price: 7, discount_threshold: 50, discount_percentage: 5, reorder_point: 50, shelf_life_days: 7, is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: "p-3", product_code: "BR3", name: "Burger Buns 6-pack", price: 10, discount_threshold: null, discount_percentage: null, reorder_point: 30, shelf_life_days: 5, is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: "p-4", product_code: "BR4", name: "Hot Dog Buns 6-pack", price: 10, discount_threshold: null, discount_percentage: null, reorder_point: 30, shelf_life_days: 5, is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: "p-5", product_code: "BR5", name: "Dinner Rolls 8-pack", price: 12, discount_threshold: null, discount_percentage: null, reorder_point: 20, shelf_life_days: 5, is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: "p-6", product_code: "BS1", name: "Biscuits — Plain", price: 20, discount_threshold: 20, discount_percentage: 10, reorder_point: 100, shelf_life_days: 90, is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: "p-7", product_code: "BS2", name: "Biscuits — Sweet", price: 22, discount_threshold: 20, discount_percentage: 10, reorder_point: 100, shelf_life_days: 90, is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: "p-8", product_code: "CK1", name: "Cake — Vanilla", price: 50, discount_threshold: null, discount_percentage: null, reorder_point: 15, shelf_life_days: 14, is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: "p-9", product_code: "CK2", name: "Cake — Chocolate", price: 55, discount_threshold: null, discount_percentage: null, reorder_point: 15, shelf_life_days: 14, is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: "p-10", product_code: "PS1", name: "Pastry — Savory", price: 15, discount_threshold: null, discount_percentage: null, reorder_point: 40, shelf_life_days: 3, is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: "p-11", product_code: "PS2", name: "Pastry — Sweet", price: 15, discount_threshold: null, discount_percentage: null, reorder_point: 40, shelf_life_days: 3, is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: "p-12", product_code: "SN1", name: "Snack Pack — Small", price: 8, discount_threshold: 100, discount_percentage: 15, reorder_point: 60, shelf_life_days: 180, is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: "p-13", product_code: "SN2", name: "Snack Pack — Large", price: 14, discount_threshold: 100, discount_percentage: 15, reorder_point: 60, shelf_life_days: 180, is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
 ];
 
 const SEEDED_PROFILES: Profile[] = [
@@ -332,7 +335,20 @@ const mockRpc = async (fn: string, args: any) => {
       { action: "log_box", at: box.logged_at, by_user: box.logged_by_user_id, detail: null },
     ];
     if (box.received_at) history.push({ action: "confirm_receipt", at: box.received_at, by_user: box.received_by_user_id, detail: null });
-    if (box.status === "dispatched_sale") history.push({ action: "dispatch_sale", at: box.updated_at, by_user: currentUserId, detail: null });
+    
+    if (box.status === "dispatched_sale") {
+      const audit = auditLogs.find(a => a.entity_id === box.id && a.action_type === "fulfill_order_line");
+      let detailMsg = "Order fulfillment";
+      if (audit && audit.details?.order_id) {
+        const order = orders.find(o => o.id === audit.details.order_id);
+        if (order) {
+          const cust = customers.find(c => c.id === order.customer_id);
+          detailMsg = `Order: ${order.order_number}${cust ? ` (Customer: ${cust.name})` : ""}`;
+        }
+      }
+      history.push({ action: "dispatch_sale", at: box.updated_at, by_user: currentUserId, detail: detailMsg });
+    }
+    
     if (box.status === "dispatched_non_sale") history.push({ action: "non_sale_dispatch", at: box.updated_at, by_user: currentUserId, detail: "gift" });
     if (box.status === "damaged_pending") history.push({ action: "damage_report", at: box.updated_at, by_user: currentUserId, detail: "warehouse" });
 
@@ -476,6 +492,7 @@ const mockRpc = async (fn: string, args: any) => {
       customer_id: customerId,
       sales_person_user_id: currentUserId,
       status: "pending",
+      total_amount: 0,
       order_date: new Date().toISOString(),
       dispatched_at: null,
       created_at: new Date().toISOString(),
@@ -483,20 +500,37 @@ const mockRpc = async (fn: string, args: any) => {
     };
 
     let anyShort = false;
+    let orderTotal = 0;
+    
     args.p_lines.forEach((line: any) => {
+      const prod = products.find(p => p.id === line.product_id);
       const available = boxes.filter(b => b.product_id === line.product_id && ["in_stock", "returned_to_stock"].includes(b.status)).length;
       const isShort = available < line.quantity_requested;
       if (isShort) anyShort = true;
+
+      const unitPrice = prod?.price || 0;
+      let discountApplied = 0;
+      
+      if (prod?.discount_threshold && line.quantity_requested >= prod.discount_threshold && prod.discount_percentage) {
+        discountApplied = (unitPrice * (prod.discount_percentage / 100)) * line.quantity_requested;
+      }
+      
+      const lineTotal = (unitPrice * line.quantity_requested) - discountApplied;
+      orderTotal += lineTotal;
 
       orderLines.push({
         id: "ol-" + Math.random().toString(36).substr(2, 9),
         order_id: newOrder.id,
         product_id: line.product_id,
         quantity_requested: line.quantity_requested,
-        quantity_fulfilled: 0
+        quantity_fulfilled: 0,
+        unit_price: unitPrice,
+        discount_applied: discountApplied,
+        line_total: lineTotal
       });
     });
 
+    newOrder.total_amount = orderTotal;
     newOrder.status = anyShort ? "short" : "ready_to_pick";
     orders.push(newOrder);
 
@@ -680,6 +714,63 @@ const mockRpc = async (fn: string, args: any) => {
     return { data: { ok: true, message: `Damage report decided: ${args.p_decision}. Box ${box.code} is now ${newStatus}.` }, error: null };
   }
 
+  if (fn === "report_damage") {
+    const box = boxes.find(b => b.code === args.p_code);
+    if (!box) return { data: null, error: new Error(`No box found with code ${args.p_code}`) };
+    if (!["in_stock", "returned_to_stock", "dispatched_sale"].includes(box.status)) {
+      return { data: { ok: false, message: `Cannot report damage: box ${args.p_code} is currently ${box.status}.` }, error: null };
+    }
+
+    box.status = "damaged_pending";
+    box.updated_at = new Date().toISOString();
+
+    const newReport: DamageReport = {
+      id: "dr-" + Math.random().toString(36).substr(2, 9),
+      box_id: box.id,
+      source: args.p_source,
+      reason: args.p_reason,
+      photo_url: null,
+      reported_by_user_id: currentUserId,
+      status: "pending_approval",
+      decided_by_user_id: null,
+      decision_note: null,
+      order_id: null,
+      created_at: new Date().toISOString(),
+      decided_at: null
+    };
+
+    damageReports.push(newReport);
+    setStorageItem("mock_damage_reports", damageReports);
+    setStorageItem("mock_boxes", boxes);
+    addAudit("report_damage", "damage_report", newReport.id, { box_id: box.id, source: args.p_source, reason: args.p_reason });
+
+    return { data: { ok: true, message: `Damage reported for box ${box.code}. Status is now damaged_pending.` }, error: null };
+  }
+
+  if (fn === "get_order_details") {
+    const orderNum = args.p_order_number;
+    const order = orders.find(o => o.order_number === orderNum);
+    if (!order) return { data: null, error: new Error(`Order ${orderNum} not found.`) };
+
+    const customer = customers.find(c => c.id === order.customer_id);
+    const seller = profiles.find(p => p.id === order.sales_person_user_id);
+    
+    const lines = orderLines.filter(l => l.order_id === order.id).map(l => {
+      const prod = products.find(p => p.id === l.product_id);
+      return { ...l, product: prod };
+    });
+
+    return {
+      data: {
+        order,
+        customer,
+        seller,
+        lines
+      },
+      error: null
+    };
+  }
+
   return { data: null, error: new Error(`RPC function ${fn} is not mocked`) };
 };
 
@@ -714,8 +805,8 @@ export const supabase = new Proxy({} as any, {
     }
 
     if (prop === "auth") {
-      if (useMockFallback || !realClient) return mockClient.auth;
-      return realClient.auth;
+      // Always use mock auth as per user request to keep local custom login
+      return mockClient.auth;
     }
     
     if (prop === "from") {

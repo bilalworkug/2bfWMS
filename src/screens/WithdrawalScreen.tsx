@@ -3,7 +3,7 @@ import { supabase } from "../supabase";
 import type { Order, OrderLine, Product } from "../supabase";
 import { ScanField } from "../ScanField";
 import { useToast } from "../Toast";
-import { strings } from "../strings";
+import { useLanguage } from "../LanguageContext";
 import { CheckCircle2, AlertTriangle, Truck, Gift, Package, ShoppingCart, Info, ListChecks, Scan } from "lucide-react";
 import { playScanSuccess, playScanAlreadyExists, playScanError } from "../audio";
 
@@ -11,6 +11,7 @@ type Tab = "fulfill" | "nonsale";
 
 export function WithdrawalScreen() {
   const notify = useToast();
+  const { strings } = useLanguage();
   const [tab, setTab] = useState<Tab>("fulfill");
   const [orders, setOrders] = useState<Order[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);

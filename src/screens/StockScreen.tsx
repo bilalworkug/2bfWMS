@@ -2,11 +2,12 @@ import { useEffect, useState } from "react";
 import { supabase } from "../supabase";
 import type { DamageReport, Product, Box } from "../supabase";
 import { useToast } from "../Toast";
-import { strings } from "../strings";
-import { ClipboardCheck, Check, X, RotateCcw, Trash2, Package, ListChecks, Settings2, AlertTriangle, ShieldAlert } from "lucide-react";
+import { useLanguage } from "../LanguageContext";
+import { ClipboardCheck, Check, X, RotateCcw, Trash2, Package, ListChecks, Settings2, AlertTriangle, ShieldAlert, RefreshCw } from "lucide-react";
 
 export function StockScreen() {
   const notify = useToast();
+  const { strings } = useLanguage();
   const [tab, setTab] = useState<"queue" | "products">("queue");
   const [reports, setReports] = useState<(DamageReport & { box?: Box; product?: Product })[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -50,6 +51,12 @@ export function StockScreen() {
           </h1>
           <p className="text-sm text-slate-500 mt-1">Manage warehouse inventory parameters and resolve damaged items.</p>
         </div>
+        <button 
+          onClick={() => { loadReports(); loadProducts(); }} 
+          className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-bold rounded-xl transition-colors"
+        >
+          <RefreshCw size={16} /> Refresh
+        </button>
       </div>
 
       <div className="flex bg-slate-200/50 p-1.5 rounded-2xl w-fit">
@@ -180,7 +187,10 @@ export function StockScreen() {
               <thead className="bg-slate-50/80 border-b border-slate-200 text-slate-500 font-semibold uppercase tracking-wider text-[11px]">
                 <tr>
                   <th className="text-left px-6 py-4">Product Details</th>
-                  <th className="text-center px-6 py-4 w-32">Reorder Point</th>
+                  <th className="text-center px-4 py-4 w-24">{strings.pricing.basePrice}</th>
+                  <th className="text-center px-4 py-4 w-24">{strings.pricing.bulkQty}</th>
+                  <th className="text-center px-4 py-4 w-24">{strings.pricing.discountPct}</th>
+                  <th className="text-center px-6 py-4 w-28">Reorder Point</th>
                   <th className="text-center px-6 py-4 w-32">Shelf Life (Days)</th>
                   <th className="text-center px-6 py-4 w-24">Status</th>
                   <th className="text-right px-6 py-4 w-28">Actions</th>
@@ -199,6 +209,33 @@ export function StockScreen() {
                           <div className="font-mono text-xs text-slate-500 mt-0.5">{p.product_code}</div>
                         </div>
                       </div>
+                    </td>
+                    <td className="px-4 py-4 text-center">
+                      <input 
+                        type="number" 
+                        value={p.price ?? ""} 
+                        onChange={e => setProducts(ps => ps.map(x => x.id === p.id ? { ...x, price: parseFloat(e.target.value) || 0 } : x))} 
+                        className="w-20 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-center font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all mx-auto block" 
+                        placeholder="$0.00"
+                      />
+                    </td>
+                    <td className="px-4 py-4 text-center">
+                      <input 
+                        type="number" 
+                        value={p.discount_threshold ?? ""} 
+                        onChange={e => setProducts(ps => ps.map(x => x.id === p.id ? { ...x, discount_threshold: e.target.value ? parseInt(e.target.value) : null } : x))} 
+                        className="w-16 rounded-xl border border-slate-200 bg-white px-2 py-2 text-sm text-center font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all mx-auto block" 
+                        placeholder="--"
+                      />
+                    </td>
+                    <td className="px-4 py-4 text-center">
+                      <input 
+                        type="number" 
+                        value={p.discount_percentage ?? ""} 
+                        onChange={e => setProducts(ps => ps.map(x => x.id === p.id ? { ...x, discount_percentage: e.target.value ? parseInt(e.target.value) : null } : x))} 
+                        className="w-16 rounded-xl border border-slate-200 bg-white px-2 py-2 text-sm text-center font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all mx-auto block" 
+                        placeholder="%"
+                      />
                     </td>
                     <td className="px-6 py-4 text-center">
                       <input 

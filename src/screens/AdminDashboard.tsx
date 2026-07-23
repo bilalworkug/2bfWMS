@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "../supabase";
 import type { Profile, UserRole } from "../supabase";
 import { useToast } from "../Toast";
-import { strings } from "../strings";
+import { useLanguage } from "../LanguageContext";
 import {
   LayoutDashboard,
   UserPlus,
@@ -23,15 +23,38 @@ import {
   Settings,
   MoreVertical,
   Activity,
+  RefreshCw,
 } from "lucide-react";
 
 type Tab = "overview" | "users";
 
+const MetricCard = ({ label, value, color, icon: Icon, trend }: any) => (
+  <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm relative overflow-hidden group">
+    <div className="flex justify-between items-start mb-4">
+      <div className="p-2 rounded-xl bg-slate-50 text-slate-400 group-hover:text-blue-600 transition-colors">
+        <Icon size={20} />
+      </div>
+      <div className={`text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1 ${
+        trend.startsWith("+") ? "text-emerald-600 bg-emerald-50" : "text-rose-600 bg-rose-50"
+      }`}>
+        {trend.startsWith("+") ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+        {trend}
+      </div>
+    </div>
+    <div className="mb-1">
+      <span className="text-3xl font-extrabold text-slate-900">{value}</span>
+    </div>
+    <div className="text-xs text-slate-500 font-medium">{label}</div>
+  </div>
+);
+
 export function AdminDashboard({ role }: { role: UserRole }) {
+  const { strings } = useLanguage();
   const notify = useToast();
   const [tab, setTab] = useState<Tab>("overview");
   const [users, setUsers] = useState<Profile[]>([]);
   const [stats, setStats] = useState<Record<string, number>>({});
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [showAdd, setShowAdd] = useState(false);
   const [newUsername, setNewUsername] = useState("");
   const [newFullName, setNewFullName] = useState("");
@@ -54,12 +77,44 @@ export function AdminDashboard({ role }: { role: UserRole }) {
     const { count: inStock } = await supabase.from("boxes").select("*", { count: "exact", head: true }).in("status", ["in_stock", "returned_to_stock"]);
     const { count: dispatched } = await supabase.from("boxes").select("*", { count: "exact", head: true }).in("status", ["dispatched_sale", "dispatched_non_sale"]);
     const { count: damaged } = await supabase.from("boxes").select("*", { count: "exact", head: true }).eq("status", "damaged_pending");
-    setStats({ totalBoxes: totalBoxes || 0, inStock: inStock || 0, dispatched: dispatched || 0, damaged: damaged || 0 });
+
+    let roleStats: any = {};
+    if (role === "sales" || role === "super_admin") {
+      const { data: ords } = await supabase.from("orders").select("total_amount, status");
+      roleStats.revenue = ords?.reduce((sum, o) => sum + (o.total_amount || 0), 0) || 0;
+      roleStats.pendingOrders = ords?.filter(o => o.status === 'pending').length || 0;
+    }
+    
+    if (role === "qa" || role === "super_admin") {
+      const { count: activeHolds } = await supabase.from("quality_holds").select("*", { count: "exact", head: true }).eq("status", "active");
+      const { count: pendingDamages } = await supabase.from("damage_reports").select("*", { count: "exact", head: true }).eq("status", "pending_approval");
+      const { count: writeoffs } = await supabase.from("damage_reports").select("*", { count: "exact", head: true }).eq("status", "approved_writeoff");
+      roleStats.activeHolds = activeHolds || 0;
+      roleStats.pendingDamages = pendingDamages || 0;
+      roleStats.writeoffs = writeoffs || 0;
+    }
+
+    if (role === "production" || role === "super_admin") {
+      const todayStr = new Date().toISOString().split('T')[0];
+      const { count: yieldToday } = await supabase.from("boxes").select("*", { count: "exact", head: true }).gte("created_at", todayStr);
+      const expStr = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
+      const { count: expiringSoon } = await supabase.from("boxes").select("*", { count: "exact", head: true }).in("status", ["in_stock"]).lte("expiry_date", expStr);
+      roleStats.yieldToday = yieldToday || 0;
+      roleStats.expiringSoon = expiringSoon || 0;
+    }
+
+    setStats({ totalBoxes: totalBoxes || 0, inStock: inStock || 0, dispatched: dispatched || 0, damaged: damaged || 0, ...roleStats });
+  };
+
+  const loadAuditLogs = async () => {
+    const { data } = await supabase.from("audit_logs").select("*, profiles(username)").order("created_at", { ascending: false }).limit(6);
+    setAuditLogs(data || []);
   };
 
   useEffect(() => {
     loadUsers();
     loadStats();
+    loadAuditLogs();
   }, []);
 
   const toggleActive = async (u: Profile) => {
@@ -104,6 +159,12 @@ export function AdminDashboard({ role }: { role: UserRole }) {
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Dashboard</h1>
           <p className="text-sm text-slate-500 mt-1">Manage your warehouse operations overview here</p>
         </div>
+        <button 
+          onClick={() => { loadUsers(); loadStats(); loadAuditLogs(); }} 
+          className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-bold rounded-xl transition-colors"
+        >
+          <RefreshCw size={16} /> Refresh
+        </button>
       </div>
 
       {isSuperAdmin && (
@@ -180,37 +241,35 @@ export function AdminDashboard({ role }: { role: UserRole }) {
 
           {/* Metrics Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[
-              { label: "Total Tracked Items", value: stats.totalBoxes || 0, color: "bg-blue-600", progress: "75%", icon: Boxes, trend: "+12.5%" },
-              { label: "Items In Stock", value: stats.inStock || 0, color: "bg-emerald-500", progress: "62%", icon: CheckCircle2, trend: "+8.2%" },
-              { label: "Total Dispatched", value: stats.dispatched || 0, color: "bg-amber-500", progress: "85%", icon: Truck, trend: "+15.3%" },
-              { label: "Damaged Pending", value: stats.damaged || 0, color: "bg-purple-500", progress: "90%", icon: AlertTriangle, trend: "-5.1%" },
-            ].map((s, i) => (
-              <div key={i} className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm relative overflow-hidden group">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="p-2 rounded-xl bg-slate-50 text-slate-400 group-hover:text-blue-600 transition-colors">
-                    <s.icon size={20} />
-                  </div>
-                  <div className={`text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1 ${
-                    s.trend.startsWith("+") ? "text-emerald-600 bg-emerald-50" : "text-rose-600 bg-rose-50"
-                  }`}>
-                    {s.trend.startsWith("+") ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
-                    {s.trend}
-                  </div>
-                </div>
-                <div className="mb-1">
-                  <span className="text-3xl font-extrabold text-slate-900">{s.value.toLocaleString()}</span>
-                </div>
-                <div className="text-xs text-slate-500 font-medium">{s.label}</div>
-                <div className="mt-4 flex items-center gap-2">
-                  <div className="text-[10px] text-slate-400 font-semibold w-12">Progress</div>
-                  <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                    <div className={`h-full rounded-full ${s.color}`} style={{ width: s.progress }}></div>
-                  </div>
-                  <div className="text-[10px] font-bold text-slate-700 w-6 text-right">{s.progress}</div>
-                </div>
-              </div>
-            ))}
+            {role === "sales" ? (
+              <>
+                <MetricCard label="Total Revenue" value={`${(stats.revenue || 0).toLocaleString()} ETB`} color="bg-emerald-500" icon={Activity} trend="+12.5%" />
+                <MetricCard label="Pending Orders" value={stats.pendingOrders || 0} color="bg-amber-500" icon={AlertTriangle} trend="-5.0%" />
+                <MetricCard label="Total Dispatched" value={stats.dispatched || 0} color="bg-blue-600" icon={Truck} trend="+15.3%" />
+                <MetricCard label="Active Users" value={users.filter(u => u.is_active).length} color="bg-purple-500" icon={Users} trend="+8.2%" />
+              </>
+            ) : role === "production" ? (
+              <>
+                <MetricCard label="Yield Today" value={stats.yieldToday || 0} color="bg-blue-600" icon={Box} trend="+12.5%" />
+                <MetricCard label="Expiring Soon (7d)" value={stats.expiringSoon || 0} color="bg-rose-500" icon={AlertTriangle} trend="+2.1%" />
+                <MetricCard label="Items In Stock" value={stats.inStock || 0} color="bg-emerald-500" icon={CheckCircle2} trend="+8.2%" />
+                <MetricCard label="Active Users" value={users.filter(u => u.is_active).length} color="bg-purple-500" icon={Users} trend="+8.2%" />
+              </>
+            ) : role === "qa" ? (
+              <>
+                <MetricCard label="Active Holds" value={stats.activeHolds || 0} color="bg-amber-500" icon={AlertTriangle} trend="-1.5%" />
+                <MetricCard label="Pending Damages" value={stats.pendingDamages || 0} color="bg-rose-500" icon={AlertTriangle} trend="-5.0%" />
+                <MetricCard label="Total Write-offs" value={stats.writeoffs || 0} color="bg-purple-500" icon={CheckCircle2} trend="-2.0%" />
+                <MetricCard label="Items In Stock" value={stats.inStock || 0} color="bg-emerald-500" icon={CheckCircle2} trend="+8.2%" />
+              </>
+            ) : (
+              <>
+                <MetricCard label="Total Tracked Items" value={stats.totalBoxes || 0} color="bg-blue-600" icon={Boxes} trend="+12.5%" />
+                <MetricCard label="Items In Stock" value={stats.inStock || 0} color="bg-emerald-500" icon={CheckCircle2} trend="+8.2%" />
+                <MetricCard label="Total Dispatched" value={stats.dispatched || 0} color="bg-amber-500" icon={Truck} trend="+15.3%" />
+                <MetricCard label="Damaged Pending" value={stats.damaged || 0} color="bg-purple-500" icon={AlertTriangle} trend="-5.1%" />
+              </>
+            )}
           </div>
 
           {/* Lower Content Split */}
@@ -296,24 +355,24 @@ export function AdminDashboard({ role }: { role: UserRole }) {
                 </div>
 
                 <div className="flex-1 space-y-6 relative before:absolute before:inset-0 before:ml-[15px] before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-200 before:to-transparent">
-                  {[
-                    { u: "admin", text: "placed a quality hold on Box B-102", time: "2 minutes ago", color: "text-blue-600 bg-blue-50 border-blue-200" },
-                    { u: "prod_worker", text: "logged a new box production", time: "15 minutes ago", color: "text-emerald-600 bg-emerald-50 border-emerald-200" },
-                    { u: "qa_officer", text: "released hold on Box B-099", time: "32 minutes ago", color: "text-purple-600 bg-purple-50 border-purple-200" },
-                    { u: "sales_rep", text: "dispatched order #10042", time: "1 hour ago", color: "text-amber-600 bg-amber-50 border-amber-200" },
-                  ].map((log, i) => (
+                  {auditLogs.length > 0 ? auditLogs.map((log, i) => (
                     <div key={i} className="relative flex items-start justify-between gap-4">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 border ${log.color} shadow-sm z-10`}>
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 border text-blue-600 bg-blue-50 border-blue-200 shadow-sm z-10`}>
                         <Activity size={14} />
                       </div>
                       <div className="flex-1 bg-slate-50 p-3 rounded-xl border border-slate-100">
                         <p className="text-sm text-slate-600 leading-snug">
-                          <span className="font-bold text-slate-900">@{log.u}</span> {log.text}
+                          <span className="font-bold text-slate-900">@{log.profiles?.username || "system"}</span> 
+                          {" "}{log.action.replace(/_/g, " ")} 
+                          {log.details?.box_id && ` on box ${log.details.box_id}`}
+                          {log.details?.order_id && ` on order ${log.details.order_id}`}
                         </p>
-                        <p className="text-[10px] text-slate-400 mt-1 font-medium">{log.time}</p>
+                        <p className="text-[10px] text-slate-400 mt-1 font-medium">{new Date(log.created_at).toLocaleString()}</p>
                       </div>
                     </div>
-                  ))}
+                  )) : (
+                    <div className="text-sm text-slate-500 text-center py-4">No recent activity found.</div>
+                  )}
                 </div>
                 
                 <button className="w-full mt-6 py-2.5 text-sm font-bold text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-xl transition-colors">

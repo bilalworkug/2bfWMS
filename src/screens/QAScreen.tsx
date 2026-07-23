@@ -3,12 +3,13 @@ import { supabase } from "../supabase";
 import type { QualityHold, Box, Product } from "../supabase";
 import { ScanField } from "../ScanField";
 import { useToast } from "../Toast";
-import { strings } from "../strings";
+import { useLanguage } from "../LanguageContext";
 import { ShieldAlert, Lock, Unlock, AlertTriangle, CheckCircle2, AlertOctagon } from "lucide-react";
 import { playScanSuccess, playScanError } from "../audio";
 
 export function QAScreen() {
   const notify = useToast();
+  const { strings } = useLanguage();
   const [tab, setTab] = useState<"place" | "active">("place");
   const [reason, setReason] = useState("");
   const [holds, setHolds] = useState<(QualityHold & { box?: Box; product?: Product })[]>([]);

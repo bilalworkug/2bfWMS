@@ -2,7 +2,7 @@ import { useState } from "react";
 import { ScanLine, Camera } from "lucide-react";
 import { useScanInput } from "./useScanInput";
 import { CameraScanner } from "./CameraScanner";
-import { strings } from "./strings";
+import { useLanguage } from "./LanguageContext";
 
 interface ScanFieldProps {
   onSubmit: (code: string) => void;
@@ -13,6 +13,7 @@ interface ScanFieldProps {
 
 export function ScanField({ onSubmit, placeholder, autoFocus = true, showCamera = true }: ScanFieldProps) {
   const [cameraActive, setCameraActive] = useState(false);
+  const { strings } = useLanguage();
   const { value, setValue, inputRef, handleSubmit, focus } = useScanInput({ onSubmit });
   return (
     <div className="space-y-3">
